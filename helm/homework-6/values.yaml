@@ -5,8 +5,8 @@
 replicaCount: 1
 
 image:
-  repository: otus-homework-6
-  pullPolicy: Never
+  repository: arttsgnet/otus-homework-6
+  pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: latest
 

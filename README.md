@@ -34,19 +34,25 @@ docker-compose up --build
 ```bash
 brew install minikube
 minikube start --vm=true --driver=hyperkit
-minikube addons enable ingress
 ```
 1. Install: helm 3, kubectl
 ```bash
 brew install helm
 brew install kubectl
 ```
-2. Build docker image and load it in minikube
+2. **(Optional)** Build docker image and load it in minikube
 ```bash
 docker build -t otus-homework-6 .
 minikube image load otus-homework-6:latest --daemon=true --overwrite=true
 ```
-3. Helm install command  
+3. Install ingress
+```bash
+helm upgrade --install ingress-nginx ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx --create-namespace \
+  --set controller.service.externalIPs={$(minikube ip)}
+```
+4. Helm install command  
 ```bash
 cd helm/homework-6
 kubectl config set-context minikube
@@ -54,11 +60,11 @@ helm repo add postgresql https://cetic.github.io/helm-charts
 helm dependency build
 helm upgrade otus-homework-6 ./ --install --wait
 ```
-4. Configure `/etc/hosts`
+5. Configure `/etc/hosts`
 ```bash
 echo "$(kubectl get ing otus-homework-6 -o jsonpath='{.status.loadBalancer.ingress[0].ip}') arch.homework" | sudo tee -a /etc/hosts
 ```
-5. Check using postman collection in file `User Service.postman_collection.json`
+6. Check using postman collection in file `User Service.postman_collection.json`
 
 
 
