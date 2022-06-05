@@ -18,6 +18,7 @@ from db import init_db
 
 from models.user import User
 
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(
     title="User Service",
@@ -30,3 +31,5 @@ def on_startup():
     init_db()
 
 app.include_router(UserApiRouter)
+
+Instrumentator().instrument(app).expose(app)

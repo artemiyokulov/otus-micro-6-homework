@@ -1,0 +1,25 @@
+{{ if .Values.withStress }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      stressTest: "true"
+  template:
+    metadata:
+      labels:
+        stressTest: "true"
+    spec:
+      containers:
+        - name: ab
+          image: "jordi/ab"
+          imagePullPolicy: Always
+          command: 
+            - /bin/sh
+          args:
+            - -c
+            - while true; do ab -n 50 -c 5 -H "localhost" http://ingress-nginx-controller.kube-system/user/1 ; sleep 3; done
+{{ end }}

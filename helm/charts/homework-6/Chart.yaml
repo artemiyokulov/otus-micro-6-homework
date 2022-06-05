@@ -22,12 +22,3 @@ version: 0.1.0
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
 appVersion: "1.16.0"
-
-dependencies: # A list of the chart requirements (optional)
-  - name: postgresql
-    version: "0.2.3"
-    repository: https://cetic.github.io/helm-charts
-    condition: postgresql.enabled
-    tags:
-      - db
-    alias: postgresql

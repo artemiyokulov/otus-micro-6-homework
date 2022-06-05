@@ -37,3 +37,4 @@ websockets==8.1
 sqlmodel==0.0.6
 psycopg2-binary==2.9.3
 pyhumps==3.7.1
+prometheus-fastapi-instrumentator==5.8.1

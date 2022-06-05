@@ -73,10 +73,6 @@ resources: {}
 
 autoscaling:
   enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
 
 nodeSelector: {}
 
@@ -97,13 +93,3 @@ env:
         key: password
   - name: DATABASE_URL
     value: postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@db:5432/postgres
-
-# bitnami postgresql chart
-# все доступные параметры и их описание: https://artifacthub.io/packages/helm/bitnami/postgresql
-postgresql:
-  enabled: true
-  fullnameOverride: "db"
-  service:
-    port: 5432
-  persistence:
-    enabled: true

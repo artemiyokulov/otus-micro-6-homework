@@ -1,0 +1,436 @@
+helmDefaults:
+  wait: true
+  waitForJobs: true
+  historyMax: 3
+  createNamespace: true
+
+repositories:
+  - name: bitnami
+    url: https://charts.bitnami.com/bitnami
+  - name: ingress-nginx
+    url: https://kubernetes.github.io/ingress-nginx
+  - name: cetic
+    url: https://cetic.github.io/helm-charts
+
+releases:
+  - name: prometheus-operator
+    chart: bitnami/kube-prometheus
+    version: 8.0.1
+    namespace: kube-system
+    values:
+      - prometheus:
+          ingress:
+            enabled: true
+            pathType: Prefix
+            hostname: prom.localhost
+            path: /
+            ingressClassName: nginx
+  - name: ingress-nginx
+    chart: ingress-nginx/ingress-nginx
+    version: 4.1.1
+    namespace: kube-system
+    needs:
+      - kube-system/prometheus-operator
+    values:
+      - controller:
+          metrics:
+            enabled: true
+            serviceMonitor:
+              additionalLabels:
+                release: prometheus
+              enabled: true
+        exporters:
+          kube-state-metrics:
+            enabled: true
+        kubelet:
+          enabled: true
+
+  - name: grafana
+    chart: bitnami/grafana
+    version: 7.9.4
+    namespace: kube-system
+    needs:
+      - kube-system/ingress-nginx
+    values:
+      - ingress:
+          enabled: true
+          pathType: Prefix
+          hostname: grafana.localhost
+          path: /
+          ingressClassName: nginx
+        config:
+          useGrafanaIniFile: true
+          grafanaIniConfigMap: grafanaconfig
+        admin:
+          user: admin
+          password: admin
+        datasources:
+          secretName: grafana-datasources
+        dashboardsProvider:
+          enabled: true
+        dashboardsConfigMaps:
+          - configMapName: grafana-dashboard
+            fileName: dashboard.json
+        extraDeploy:
+          - apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: grafana-dashboard
+            data:
+              dashboard.json: |-
+                {
+                  "annotations": {
+                    "list": [
+                      {
+                        "builtIn": 1,
+                        "datasource": "-- Grafana --",
+                        "enable": true,
+                        "hide": true,
+                        "iconColor": "rgba(0, 211, 255, 1)",
+                        "name": "Annotations & Alerts",
+                        "type": "dashboard"
+                      }
+                    ]
+                  },
+                  "editable": true,
+                  "gnetId": null,
+                  "graphTooltip": 0,
+                  "id": 26,
+                  "links": [],
+                  "panels": [
+                    {
+                      "aliasColors": {},
+                      "bars": false,
+                      "dashLength": 10,
+                      "dashes": false,
+                      "datasource": null,
+                      "fill": 1,
+                      "fillGradient": 0,
+                      "gridPos": {
+                        "h": 7,
+                        "w": 24,
+                        "x": 0,
+                        "y": 0
+                      },
+                      "hiddenSeries": false,
+                      "id": 4,
+                      "legend": {
+                        "avg": false,
+                        "current": false,
+                        "max": false,
+                        "min": false,
+                        "show": true,
+                        "total": false,
+                        "values": false
+                      },
+                      "lines": true,
+                      "linewidth": 1,
+                      "nullPointMode": "null",
+                      "options": {
+                        "dataLinks": []
+                      },
+                      "percentage": false,
+                      "pointradius": 2,
+                      "points": false,
+                      "renderer": "flot",
+                      "seriesOverrides": [],
+                      "spaceLength": 10,
+                      "stack": false,
+                      "steppedLine": false,
+                      "targets": [
+                        {
+                          "expr": "histogram_quantile(0.9, sum by (le) (rate(app_request_latency_seconds_bucket{exported_endpoint=\"/db\"}[2m]))) * 1000",
+                          "interval": "",
+                          "legendFormat": "",
+                          "refId": "A"
+                        }
+                      ],
+                      "thresholds": [],
+                      "timeFrom": null,
+                      "timeRegions": [],
+                      "timeShift": null,
+                      "title": "Latency",
+                      "tooltip": {
+                        "shared": true,
+                        "sort": 0,
+                        "value_type": "individual"
+                      },
+                      "type": "graph",
+                      "xaxis": {
+                        "buckets": null,
+                        "mode": "time",
+                        "name": null,
+                        "show": true,
+                        "values": []
+                      },
+                      "yaxes": [
+                        {
+                          "format": "short",
+                          "label": null,
+                          "logBase": 1,
+                          "max": null,
+                          "min": null,
+                          "show": true
+                        },
+                        {
+                          "format": "short",
+                          "label": null,
+                          "logBase": 1,
+                          "max": null,
+                          "min": null,
+                          "show": true
+                        }
+                      ],
+                      "yaxis": {
+                        "align": false,
+                        "alignLevel": null
+                      }
+                    },
+                    {
+                      "alert": {
+                        "alertRuleTags": {},
+                        "conditions": [
+                          {
+                            "evaluator": {
+                              "params": [
+                                10
+                              ],
+                              "type": "gt"
+                            },
+                            "operator": {
+                              "type": "and"
+                            },
+                            "query": {
+                              "params": [
+                                "A",
+                                "5m",
+                                "now"
+                              ]
+                            },
+                            "reducer": {
+                              "params": [],
+                              "type": "avg"
+                            },
+                            "type": "query"
+                          }
+                        ],
+                        "executionErrorState": "alerting",
+                        "for": "5m",
+                        "frequency": "1m",
+                        "handler": 1,
+                        "name": "Latency alert",
+                        "noDataState": "no_data",
+                        "notifications": []
+                      },
+                      "aliasColors": {},
+                      "bars": false,
+                      "dashLength": 10,
+                      "dashes": false,
+                      "datasource": null,
+                      "fill": 1,
+                      "fillGradient": 0,
+                      "gridPos": {
+                        "h": 6,
+                        "w": 24,
+                        "x": 0,
+                        "y": 7
+                      },
+                      "hiddenSeries": false,
+                      "id": 2,
+                      "legend": {
+                        "avg": false,
+                        "current": false,
+                        "max": false,
+                        "min": false,
+                        "show": true,
+                        "total": false,
+                        "values": false
+                      },
+                      "lines": true,
+                      "linewidth": 1,
+                      "nullPointMode": "null",
+                      "options": {
+                        "dataLinks": []
+                      },
+                      "percentage": false,
+                      "pointradius": 2,
+                      "points": false,
+                      "renderer": "flot",
+                      "seriesOverrides": [],
+                      "spaceLength": 10,
+                      "stack": false,
+                      "steppedLine": false,
+                      "targets": [
+                        {
+                          "expr": "sum by (exported_endpoint) (rate(app_request_count_total{}[2m]))",
+                          "interval": "",
+                          "legendFormat": "",
+                          "refId": "A"
+                        }
+                      ],
+                      "thresholds": [
+                        {
+                          "colorMode": "critical",
+                          "fill": true,
+                          "line": true,
+                          "op": "gt",
+                          "value": 10
+                        }
+                      ],
+                      "timeFrom": null,
+                      "timeRegions": [],
+                      "timeShift": null,
+                      "title": "RPS",
+                      "tooltip": {
+                        "shared": true,
+                        "sort": 0,
+                        "value_type": "individual"
+                      },
+                      "type": "graph",
+                      "xaxis": {
+                        "buckets": null,
+                        "mode": "time",
+                        "name": null,
+                        "show": true,
+                        "values": []
+                      },
+                      "yaxes": [
+                        {
+                          "format": "short",
+                          "label": null,
+                          "logBase": 1,
+                          "max": null,
+                          "min": null,
+                          "show": true
+                        },
+                        {
+                          "format": "short",
+                          "label": null,
+                          "logBase": 1,
+                          "max": null,
+                          "min": null,
+                          "show": true
+                        }
+                      ],
+                      "yaxis": {
+                        "align": false,
+                        "alignLevel": null
+                      }
+                    }
+                  ],
+                  "schemaVersion": 22,
+                  "style": "dark",
+                  "tags": [],
+                  "templating": {
+                    "list": []
+                  },
+                  "time": {
+                    "from": "now-6h",
+                    "to": "now"
+                  },
+                  "timepicker": {
+                    "refresh_intervals": [
+                      "5s",
+                      "10s",
+                      "30s",
+                      "1m",
+                      "5m",
+                      "15m",
+                      "30m",
+                      "1h",
+                      "2h",
+                      "1d"
+                    ]
+                  },
+                  "timezone": "",
+                  "title": "MYAPP DASHBOARD",
+                  "uid": "i1HlTw3Wk",
+                  "variables": {
+                    "list": []
+                  },
+                  "version": 1
+                }
+          - apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              name: grafanaconfig
+            data:
+              grafana.ini: |-
+                [auth.anonymous]
+                enabled = true
+                org_name = Main Org.
+                org_role = Admin
+                [auth]
+                disable_login_form = true
+          - apiVersion: v1
+            kind: Secret
+            metadata:
+              name: grafana-datasources
+            type: Opaque
+            stringData:
+              other_datasource.yaml: |-
+                apiVersion: 1
+                datasources:
+                  - name: prometheus
+                    type: prometheus
+                    access: proxy
+                    url: http://prometheus-operated.kube-system.svc.cluster.local:9090
+                    isDefault: true
+                    editable: false
+  # - name: postgresql
+  #   version: 0.2.3
+  #   chart: cetic/postgresql
+  #   namespace: default
+  #   values:
+  #     - fullnameOverride: "db"
+  #       postgresql:
+  #         enabled: true
+  #         service:
+  #           port: 5432
+  #         persistence:
+  #           enabled: true
+  - name: postgresql
+    version: 11.6.3
+    chart: bitnami/postgresql
+    namespace: default
+    needs:
+      - kube-system/prometheus-operator
+    values:
+      - fullnameOverride: "db"
+        auth:
+          postgresPassword: ololo
+          database: homework
+        metrics:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+  - name: application
+    chart: ./charts/homework-6
+    namespace: default
+    recreatePods: true
+    needs:
+      - kube-system/ingress-nginx
+      - default/postgresql
+    values:
+      - withStress: true
+        image:
+          pullPolicy: Always
+          repository: {{ requiredEnv "IMAGE" }}
+          tag: latest
+        ingress:
+          enabled: true
+          className: "nginx"
+          hosts:
+            - host: localhost
+              paths:
+                - path: "/"
+                  pathType: Prefix
+        env:
+          - name: DATABASE_USER
+            value: postgres
+          - name: DATABASE_PASSWORD
+            value: "ololo"
+          - name: DATABASE_URL
+            value: postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@db:5432/homework
+
+
