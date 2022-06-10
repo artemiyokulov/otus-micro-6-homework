@@ -1,0 +1,36 @@
+extraObjects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: grafana-dashboard
+    data:
+      dashboard.json: |
+{{ readFile "dashboard.json" | indent 16 }}
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: grafanaconfig
+    data:
+      grafana.ini: |-
+        force_migration = true
+        [auth.anonymous]
+        enabled = true
+        org_name = Main Org.
+        org_role = Admin
+        [auth]
+        disable_login_form = true
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: grafana-datasources
+    type: Opaque
+    stringData:
+      other_datasource.yaml: |-
+        apiVersion: 1
+        datasources:
+          - name: prometheus
+            type: prometheus
+            access: proxy
+            url: http://prometheus-operated.kube-system.svc.cluster.local:9090
+            isDefault: true
+            editable: false

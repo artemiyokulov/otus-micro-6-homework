@@ -32,4 +32,7 @@ def on_startup():
 
 app.include_router(UserApiRouter)
 
-Instrumentator().instrument(app).expose(app)
+Instrumentator(
+    excluded_handlers=["/metrics"],
+    should_group_untemplated=False
+    ).instrument(app).expose(app)
