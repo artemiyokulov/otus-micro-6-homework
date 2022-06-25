@@ -1,0 +1,45 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: opa-policy
+  namespace: localhost
+  labels:
+    openpolicyagent.org/policy: rego
+data:
+  rego: |
+    package httpapi.authz
+
+    import input
+
+    default allow = false  
+
+    allow {
+        input.request_path == ["user"]
+    }
+
+    allow {
+        some username
+        input.request_path = ["user", username]
+        input.preferred_username == username
+    }
+
+---
+# for local debug purpose
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opa
+  namespace: localhost
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: opa.localhost
+    http:
+      paths:
+      - backend:
+          service:
+            name: opa
+            port:
+              number: 80
+        path: /
+        pathType: Prefix

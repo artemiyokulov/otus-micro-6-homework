@@ -14,11 +14,25 @@
 from fastapi import FastAPI
 
 from apis.user_api import router as UserApiRouter
-from db import init_db
 
 from models.user import User
 
 from prometheus_fastapi_instrumentator import Instrumentator
+
+from fastapi_opa import OPAConfig, OPAMiddleware
+from fastapi_opa.auth import OIDCAuthentication, OIDCConfig
+from fastapi_opa.opa.opa_config import Injectable
+
+opa_host = "http://opa.localhost"
+oidc_config = OIDCConfig(
+    well_known_endpoint="http://keycloak.localhost/realms/otus/.well-known/openid-configuration",  # noqa
+    app_uri="http://localhost",
+    client_id="account",
+    client_secret="",
+)
+
+oidc_auth = OIDCAuthentication(oidc_config)
+opa_config = OPAConfig(authentication=oidc_auth, opa_host=opa_host)
 
 app = FastAPI(
     title="User Service",
@@ -26,11 +40,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
-@app.on_event("startup")
-def on_startup():
-    init_db()
-
 app.include_router(UserApiRouter)
+app.add_middleware(OPAMiddleware, config=opa_config, skip_endpoints=["^.*/user$"])
+
 
 Instrumentator(
     excluded_handlers=["/metrics"],

@@ -1,0 +1,57 @@
+fullnameOverride: oauth2-proxy
+
+proxyVarsAsSecrets: true
+
+config:
+  clientID: "account"
+  clientSecret: "any"
+  cookieSecret: R2dpcDlEVk1SOTVVK0pzMmNQV1FqRkFia05hVU1rZHg=
+
+extraArgs:
+  provider: oidc
+  oidc-issuer-url: http://keycloak.localhost/realms/otus
+  skip-oidc-discovery: true
+  # login-url:
+  # redeem-url:
+  # oidc-jwks-url: http://keycloak.localhost/realms/otus/protocol/openid-connect/certs
+  # validate-url:
+
+  scope: openid profile email
+  email-domain: "*"
+  cookie-refresh: "0h5m0s"
+  pass-access-token: true
+  pass-authorization-header: true
+  oidc-groups-claim: group
+  ssl-insecure-skip-verify: false
+  ssl-upstream-insecure-skip-verify: true
+  redirect-url: "http://localhost/oauth2/callback"
+  reverse-proxy: true
+  set-xauthrequest: true
+  set-authorization-header: true
+  skip-auth-preflight: false
+  skip-auth-route: "" 
+  # skip-provider-button: true
+  upstream: file:///dev/null
+  exclude-logging-path: "/ping"
+  insecure-oidc-allow-unverified-email: true
+
+sessionStorage:
+  type: cookie
+
+ingress:
+  enabled: true
+  className: "nginx"
+  pathType: Prefix
+  path: /oauth2
+  hosts:
+    - localhost
+  
+extraObjects:
+  - kind: Secret
+    apiVersion: v1
+    metadata:
+      name: backstage-oauth2-proxy
+    stringData:
+      cookie-secret: "tocgeI-TsX-12pFyLesnv7QG5L2XBzqPWD8J9RepBps="
+      client-id: frmwrk-test
+      client-secret: "any"

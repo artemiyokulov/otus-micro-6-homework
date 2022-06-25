@@ -16,11 +16,11 @@
                 "--port",
                 "8081",
             ],
-            "cwd": "./src/openapi_server",
+            "cwd": "${workspaceFolder}/src/openapi_server",
             "jinja": true,
-            "justMyCode": true,
+            "justMyCode": false,
             "env": {
-                "DATABASE_URL": "postgresql://postgres:123123123@127.0.0.1/homework6"
+                // "DATABASE_URL": "postgresql://postgres:123123123@127.0.0.1/homework6"
             }
         }
     ]

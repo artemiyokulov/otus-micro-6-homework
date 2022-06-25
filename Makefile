@@ -16,7 +16,7 @@ prepare-k3d:
 	@K3D_FIX_DNS=1 k3d cluster create otus \
 	  --k3s-arg '--no-deploy=traefik@server:0' \
 	  --registry-use k3d-otus.localhost:$(REGISTRY_PORT) \
-	  -p "8080:80@loadbalancer" \
+	  -p "80:80@loadbalancer" \
 	  || true
 	@k3d kubeconfig merge otus -d -u
 	@kubectl config use-context k3d-otus

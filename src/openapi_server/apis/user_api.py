@@ -23,9 +23,10 @@ from models.extra_models import TokenModel  # noqa: F401
 from models.error import Error
 from models.user import User
 
-from db import get_session
 from sqlalchemy import select
 from sqlmodel import Session
+
+from keycloak import KeycloakAdmin
 
 
 
@@ -36,21 +37,40 @@ router = APIRouter()
     "/user",
     responses={
         200: {"description": "successful operation"},
+        500: {"model": Error, "description": "unexpected error"},
     },
     tags=["user"],
     summary="Create user",
 )
 async def create_user(
     user: User = Body(None, description="Created user object"),
-    session: Session = Depends(get_session)
 ) -> None:
     """This can only be done by the logged in user."""
-    session.add(user)
-    session.commit()
+    try:
+        keycloak_admin = KeycloakAdmin(server_url="http://keycloak.localhost/",
+                               username='api',
+                               password='123123',
+                               realm_name="otus")
+        new_user = keycloak_admin.create_user({
+            "email": user.email,
+            "username": user.username,
+            "credentials": [{"value": user.password, "type": "password",}],
+            "enabled": True,
+            "firstName": user.first_name,
+            "lastName": user.last_name,
+            "attributes": {
+                "phone": user.phone
+            }
+        })
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content=Error(code=500, message=str(e)).json(),
+        )
 
 
 @router.delete(
-    "/user/{userId}",
+    "/user/{username}",
     responses={
         204: {"description": "user deleted"},
         500: {"model": Error, "description": "unexpected error"},
@@ -58,45 +78,59 @@ async def create_user(
     tags=["user"],
 )
 async def delete_user(
-    userId: int = Path(None, description="ID of user"),
-    session: Session = Depends(get_session)
+    username: str = Path(None, description="username"),
 ) -> None:
-    """deletes a single user based on the ID supplied"""
+    """deletes a single user based on the username supplied"""
     try:
-        result = session.query(User).filter(User.id == userId).first()
-        session.delete(result)
-        session.commit()
+        keycloak_admin = KeycloakAdmin(server_url="http://keycloak.localhost/",
+                               username='api',
+                               password='123123',
+                               realm_name="otus")
+        user_id = keycloak_admin.get_user_id(username=username)
+        keycloak_admin.delete_user(user_id)
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content=Error(code=500, message="unexpected error").json(),
+            content=Error(code=500, message=str(e)).json(),
         )
 
 @router.get(
-    "/user/{userId}",
+    "/user/{username}",
     responses={
         200: {"model": User, "description": "user response"},
         500: {"model": Error, "description": "unexpected error"},
     },
     tags=["user"],
 )
-async def find_user_by_id(
-    userId: int = Path(None, description="ID of user"),
-    session: Session = Depends(get_session)
+async def find_user_by_username(
+    username: str = Path(None, description="Username"),
 ) -> User:
     """Returns a user based on a single ID, if the user does not have access to the user"""
+
     try:
-        result = session.execute(select(User).where(User.id == userId)).one()
-        return result[0]
-    except:
+        keycloak_admin = KeycloakAdmin(server_url="http://keycloak.localhost/",
+                               username='api',
+                               password='123123',
+                               realm_name="otus")
+        user_id = keycloak_admin.get_user_id(username=username)
+        user = keycloak_admin.get_user(user_id)
+        return User(
+            username=user["username"],
+            first_name=user["firstName"],
+            last_name=user["lastName"],
+            email=user["email"],
+            phone=user["attributes"]["phone"]
+        )
+
+    except Exception as e:
         return JSONResponse(
             status_code=500,
-            content=Error(code=500, message="unexpected error").json(),
+            content=Error(code=500, message=str(e)).json(),
         )
 
 
 @router.put(
-    "/user/{userId}",
+    "/user/{username}",
     responses={
         200: {"description": "user updated"},
         500: {"model": Error, "description": "unexpected error"},
@@ -104,28 +138,37 @@ async def find_user_by_id(
     tags=["user"],
 )
 async def update_user(
-    userId: int = Path(None, description="ID of user"),
+    username: str = Path(None, description="username"),
     user: User = Body(None, description=""),
-    session: Session = Depends(get_session)
 ) -> None:
-    """Update user with User ID supplied"""
+    """Update user with username supplied"""
     try:
-        user_old = session.query(User).filter(User.id == userId).first()
+        keycloak_admin = KeycloakAdmin(server_url="http://keycloak.localhost/",
+                               username='api',
+                               password='123123',
+                               realm_name="otus")
+        user_id = keycloak_admin.get_user_id(username=username)
 
-        user_old.username = user.username if user.username else user_old.username
-        user_old.first_name = user.first_name if user.first_name else user_old.first_name
-        user_old.last_name = user.last_name if user.last_name else user_old.last_name
-        user_old.email = user.email if user.email else user_old.email
-        user_old.phone = user.phone if user.phone else user_old.phone
+        updated_payload = {}
 
-        session.add(user_old)
-        session.commit()
-        session.refresh(user_old)
-    except:
+        if user.email:
+            updated_payload["email"] = user.email
+        if user.username:
+            updated_payload["username"] = user.username
+        if user.first_name:
+            updated_payload["firstName"] = user.first_name
+        if user.last_name:
+            updated_payload["lastName"] = user.last_name
+        if user.phone:
+            updated_payload["attributes"] = { "phone": user.phone }
+
+        keycloak_admin.update_user(user_id, updated_payload)
+
+        if user.password:
+            keycloak_admin.set_user_password(user_id=user_id, password=user.password, temporary=False)
+
+    except Exception as e:
         return JSONResponse(
             status_code=500,
-            content=Error(code=500, message="unexpected error").json(),
+            content=Error(code=500, message=str(e)).json(),
         )
-
-
-

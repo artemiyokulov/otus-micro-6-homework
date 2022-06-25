@@ -13,24 +13,32 @@ Python >= 3.7
 
 Протестировано для MacOS
 
-**Внимание: на вашем хосте должен быть свободен порт `8080`**
+**Внимание: на вашем хосте должен быть свободен порт `80`**
 
 1. Необходимо установить `docker`
-2. Для запуска исполнить `./start.sh`.
+2. Для запуска исполнить `./start.sh`. (занимает порядка 5 минут при первоначальном запуске, так как keycloak стартует долго)
 3. Для очистки от локального кластера `./stop.sh`
 
 После запуска кластера доступны следущие URL:
-- `http://localhost:8080` - само приложение
-- `http://prom.localhost:8080` - prometheus
-- `http://grafana.localhost:8080` - grafana
+- `http://localhost` - само приложение
+- `http://keycloak.localhost` - keycloak admin ui (admin/admin)
+- `http://prom.localhost` - prometheus
+- `http://grafana.localhost` - grafana
+- `http://opa.localhost` - open policy agent
 
-Для подключения к кластеру необходимо настроить `kubectl`:
 
-```bash
-k3d kubeconfig merge otus -d -u
-kubectl config use-context k3d-otus
-kubectl config set clusters.k3d-otus.server $(kubectl config view -o jsonpath='{.clusters[?(@.name=="k3d-otus")].cluster.server}' | sed 's|host.docker.internal|localhost|g')
-```
+Если необходимо подкючение к кластеру через `kubectl` -  исполните скрипт `connect.sh`.
+
+## Postman collection
+
+Коллекция лежит в файле `User Service.postman_collection.json`. 
+
+Коллекция преднастроена для работы с кластером, запущенным через `./start.sh`.
+
+## СХЕМА
+
+![image info](./schema.png)
+
 
 # DEPRECATED все что ниже
 
